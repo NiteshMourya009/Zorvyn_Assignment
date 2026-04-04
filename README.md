@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Finance Dashboard API Backend 📊
 
 A highly scalable, secure, and fully functional Node.js/Express backend API for a Finance Dashboard platform. It manages robust user authentication, complex Role-Based Access Control (RBAC), and ACID-compliant transaction persistence using MongoDB aggregation pipelines for efficient data abstraction.
@@ -102,4 +101,4 @@ _Locked exclusively to Accounts with `Admin` privileges._
 - `GET /analytics` - **(Admin / Analyst)** Outputs heavily structured financial calculations via Aggregation computation isolating totals, category breakdowns, and net balances dynamically bypassing normal queries.
 =======
 # Zorvyn_Assignment
->>>>>>> 369bdf957e591c8bd484f079d1d2191a60fc0bde
+
