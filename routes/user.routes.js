@@ -1,24 +1,22 @@
 import express from 'express';
 import * as userController from '../controllers/user.controller.js';
-import { protect, restrictTo } from '../middlewares/auth.middleware.js';
+import { protect } from '../middlewares/auth.middleware.js';
+import { checkPermission } from '../middlewares/rbac.middleware.js';
 
 const router = express.Router();
 
 // Protect all routes after this middleware
 router.use(protect);
 
-// Only admins can manage users based on the requirements
-router.use(restrictTo('Admin'));
-
 router
   .route('/')
-  .get(userController.getAllUsers)
-  .post(userController.createUser);
+  .get(checkPermission('user:readAll'), userController.getAllUsers)
+  .post(checkPermission('user:create'), userController.createUser);
 
 router
   .route('/:id')
-  .get(userController.getUser)
-  .patch(userController.updateUser)
-  .delete(userController.deleteUser);
+  .get(checkPermission('user:readOne'), userController.getUser)
+  .patch(checkPermission('user:update'), userController.updateUser)
+  .delete(checkPermission('user:delete'), userController.deleteUser);
 
 export { router as userRoutes };

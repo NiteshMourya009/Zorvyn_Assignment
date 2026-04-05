@@ -22,7 +22,9 @@ export const getTransactions = async (baseQuery = {}, queryString = {}) => {
   const features = new APIFeatures(Transaction.find(baseQuery), queryString)
     .filter()
     .sort()
-    .paginate();
+    .limitFields()
+    .paginate()
+    .cursor(); // Call cursor down here
   return await features.query;
 };
 
@@ -66,6 +68,7 @@ export const deleteTransaction = async (id) => {
 
 // Advanced Analytics Service utilizing MongoDB Aggregation Pipelines
 export const getDashboardAnalytics = async () => {
+  // 1) Overview: totalIncome, totalExpense, netBalance
   const stats = await Transaction.aggregate([
     {
       // We only consider active transactions (not soft deleted)
@@ -85,14 +88,6 @@ export const getDashboardAnalytics = async () => {
             $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0],
           },
         },
-        // Group by categories and aggregate their totals by pushing into an array
-        categories: {
-          $push: {
-            category: '$category',
-            amount: '$amount',
-            type: '$type',
-          }
-        }
       },
     },
     {
@@ -101,13 +96,11 @@ export const getDashboardAnalytics = async () => {
         totalIncome: 1,
         totalExpense: 1,
         netBalance: { $subtract: ['$totalIncome', '$totalExpense'] },
-        categories: 1
       },
     },
   ]);
 
-  // Aggregate category-wise breakdown using another pipeline branch or processing memory
-  // A second pipeline specifically for category distribution:
+  // 2) Category-wise breakdown
   const categoryBreakdown = await Transaction.aggregate([
     {
       $match: { isDeleted: { $ne: true } }
@@ -125,15 +118,79 @@ export const getDashboardAnalytics = async () => {
         type: '$_id.type',
         totalAmount: 1
       }
+    },
+    { $sort: { totalAmount: -1 } }
+  ]);
+
+  // 3) Recent Activity: last 5 transactions with user details
+  const recentActivity = await Transaction.aggregate([
+    {
+      $match: { isDeleted: { $ne: true } }
+    },
+    { $sort: { createdAt: -1 } },
+    { $limit: 5 },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userInfo'
+      }
+    },
+    {
+      $project: {
+        amount: 1,
+        type: 1,
+        category: 1,
+        notes: 1,
+        date: 1,
+        createdAt: 1,
+        createdBy: { $arrayElemAt: ['$userInfo.name', 0] }
+      }
     }
   ]);
 
-  // Combine results
+  // 4) Monthly Trends: income vs expense grouped by year-month
+  const monthlyTrends = await Transaction.aggregate([
+    {
+      $match: { isDeleted: { $ne: true } }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$date' },
+          month: { $month: '$date' }
+        },
+        totalIncome: {
+          $sum: { $cond: [{ $eq: ['$type', 'income'] }, '$amount', 0] }
+        },
+        totalExpense: {
+          $sum: { $cond: [{ $eq: ['$type', 'expense'] }, '$amount', 0] }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        year: '$_id.year',
+        month: '$_id.month',
+        totalIncome: 1,
+        totalExpense: 1,
+        netBalance: { $subtract: ['$totalIncome', '$totalExpense'] },
+        count: 1
+      }
+    },
+    { $sort: { year: 1, month: 1 } }
+  ]);
+
+  // Combine all results
   const overview = stats.length > 0 ? stats[0] : { totalIncome: 0, totalExpense: 0, netBalance: 0 };
-  delete overview.categories; // Cleanup detailed pushes if you just want totals
 
   return {
     overview,
-    categoryBreakdown
+    categoryBreakdown,
+    recentActivity,
+    monthlyTrends,
   };
 };

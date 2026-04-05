@@ -1,0 +1,13 @@
+PASS  __tests__/users.test.js (6.246 s)
+  User Endpoints
+    GET /api/v1/users
+      √ should return all users for Admin
+      √ should deny access for Viewer
+    DELETE /api/v1/users/:id
+      √ should soft delete user by Admin
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        6.246 s
+Ran all test suites matching __tests__/users.test.js.

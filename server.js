@@ -12,6 +12,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { globalErrorHandler } from './middlewares/error.middleware.js';
 import { AppError } from './utils/appError.js';
+import { connectRedis } from './utils/redisClient.js';
 
 // Load env variables
 dotenv.config();
@@ -24,7 +25,17 @@ const app = express();
 app.use(helmet());
 
 // Implement CORS
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new AppError('Not allowed by CORS', 403));
+    }
+  },
+  credentials: true
+}));
 app.options('*', cors());
 
 // Limit requests from same API (Security Phase 2)
@@ -58,21 +69,29 @@ app.use(globalErrorHandler);
 const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/finance-dashboard';
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-mongoose
-  .connect(DB_URI)
-  .then(() => console.log('DB connection successful!'))
-  .catch((err) => console.log('DB connection error:', err));
+// Connect to MongoDB & Redis
+if (process.env.NODE_ENV !== 'test') {
+  mongoose
+    .connect(DB_URI)
+    .then(() => {
+      console.log('DB connection successful!');
+      connectRedis(); // Init Redis after Mongo connects loosely
+    })
+    .catch((err) => console.log('DB connection error:', err));
 
-const server = app.listen(PORT, () => {
-  console.log(`App running on port ${PORT}...`);
-});
-
-// Handle unhandled Promise rejections globally
-process.on('unhandledRejection', err => {
-  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.log(err?.name, err?.message);
-  server.close(() => {
-    process.exit(1);
+  const server = app.listen(PORT, () => {
+    console.log(`App running on port ${PORT}...`);
   });
-});
+
+  // Handle unhandled Promise rejections globally
+  process.on('unhandledRejection', err => {
+    console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.log(err?.name, err?.message);
+    server.close(() => {
+      process.exit(1);
+    });
+  });
+}
+
+export { app };
+

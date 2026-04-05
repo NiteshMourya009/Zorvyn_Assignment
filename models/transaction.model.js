@@ -19,6 +19,11 @@ const transactionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    notes: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Notes cannot exceed 500 characters'],
+    },
     user: {
       type: mongoose.Schema.ObjectId,
       ref: 'User',
@@ -34,6 +39,10 @@ const transactionSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+transactionSchema.index({ user: 1, isDeleted: 1, date: -1 });
+transactionSchema.index({ type: 1, category: 1 });
+transactionSchema.index({ isDeleted: 1, date: -1 });
 
 // Soft Delete Middleware: hide records where isDeleted is true
 transactionSchema.pre(/^find/, function (next) {

@@ -1,0 +1,9 @@
+PASS  __tests__/auth.test.js (4.6 s)
+PASS  __tests__/users.test.js (6.592 s)
+PASS  __tests__/transactions.test.js (11.774 s)
+
+Test Suites: 3 passed, 3 total
+Tests:       16 passed, 16 total
+Snapshots:   0 total
+Time:        12.61 s
+Ran all test suites.

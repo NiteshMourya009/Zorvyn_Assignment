@@ -2,23 +2,20 @@ import * as transactionService from '../services/transaction.service.js';
 import { catchAsync } from '../utils/catchAsync.js';
 import { AppError } from '../utils/appError.js';
 import { transactionValidationSchema } from '../utils/validation.js';
+import { cacheGet, cacheSet, cacheInvalidate } from '../utils/cache.js';
 
 export const createTransaction = catchAsync(async (req, res, next) => {
-  // Input Validation
   const { error, value } = transactionValidationSchema.validate(req.body);
   if (error) {
     return next(new AppError(error.details[0].message, 400));
   }
 
-  // Link transaction to currently logged-in user
   value.user = req.user.id;
 
-  // Enforce Admin creation based on assignment requirements
-  if (req.user.role !== 'Admin') {
-    return next(new AppError('Only Admins can create records', 403));
-  }
-
   const transaction = await transactionService.createTransaction(value);
+
+  // Invalidate global analytics cache
+  await cacheInvalidate('analytics:global');
 
   res.status(201).json({
     status: 'success',
@@ -27,21 +24,60 @@ export const createTransaction = catchAsync(async (req, res, next) => {
 });
 
 export const getTransactions = catchAsync(async (req, res, next) => {
-  // If user is Viewer, they only see their own transactions. Admin/Analyst might see more.
   const baseQuery = req.user.role === 'Viewer' ? { user: req.user.id } : {};
   
   const transactions = await transactionService.getTransactions(baseQuery, req.query);
 
+  // Generate cursor metadata if we are using cursor pagination logic
+  let nextCursor = null;
+  if (transactions.length > 0 && (req.query.cursor || (!req.query.page && !req.query.limit))) {
+     const lastItem = transactions[transactions.length - 1];
+     nextCursor = Buffer.from(JSON.stringify({ _id: lastItem._id })).toString('base64');
+  }
+
   res.status(200).json({
     status: 'success',
     results: transactions.length,
+    nextCursor,
     data: { transactions },
   });
 });
 
+export const getTransaction = catchAsync(async (req, res, next) => {
+  const transaction = await transactionService.getTransactionById(req.params.id);
+
+  if (!transaction) {
+    return next(new AppError('No transaction found with that ID', 404));
+  }
+
+  // Viewers can only see their own transactions
+  if (req.user.role === 'Viewer' && transaction.user.toString() !== req.user.id) {
+    return next(new AppError('You do not have permission to view this transaction', 403));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { transaction },
+  });
+});
+
 export const getDashboardAnalytics = catchAsync(async (req, res, next) => {
-  // Call to the Service Layer which handles MongoDB Aggregations
+  const cacheKey = 'analytics:global';
+  
+  // 1) Try hit cache
+  const cachedData = await cacheGet(cacheKey);
+  if (cachedData) {
+    return res.status(200).json({
+      status: 'success',
+      data: { analytics: cachedData },
+    });
+  }
+
+  // 2) Cache miss, calculate
   const analytics = await transactionService.getDashboardAnalytics();
+
+  // 3) Set cache (TTL: 5 minutes = 300s)
+  await cacheSet(cacheKey, analytics, 300);
 
   res.status(200).json({
     status: 'success',
@@ -56,13 +92,10 @@ export const deleteTransaction = catchAsync(async (req, res, next) => {
     return next(new AppError('No transaction found with that ID', 404));
   }
 
-  // Ensure Admin or Owner is deleting
-  if (req.user.role !== 'Admin' && transaction.user.toString() !== req.user.id) {
-    return next(new AppError('You do not have permission to delete this transaction', 403));
-  }
-
-  // Calls the Service Layer implementation (which does soft-delete)
+  // We rely on route-level RBAC for Admin-only access here
   await transactionService.deleteTransaction(req.params.id);
+
+  await cacheInvalidate('analytics:global');
 
   res.status(204).json({
     status: 'success',
@@ -77,15 +110,13 @@ export const updateTransaction = catchAsync(async (req, res, next) => {
     return next(new AppError('No transaction found with that ID', 404));
   }
 
-  // Ensure Admin
-  if (req.user.role !== 'Admin') {
-    return next(new AppError('Only Admins can update records', 403));
-  }
-
   const updatedTx = await transactionService.updateTransaction(req.params.id, req.body);
+
+  await cacheInvalidate('analytics:global');
 
   res.status(200).json({
     status: 'success',
     data: { transaction: updatedTx },
   });
 });
+

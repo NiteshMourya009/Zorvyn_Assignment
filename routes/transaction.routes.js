@@ -1,6 +1,7 @@
 import express from 'express';
 import * as transactionController from '../controllers/transaction.controller.js';
-import { protect, restrictTo } from '../middlewares/auth.middleware.js';
+import { protect } from '../middlewares/auth.middleware.js';
+import { checkPermission } from '../middlewares/rbac.middleware.js';
 
 const router = express.Router();
 
@@ -10,32 +11,37 @@ router.use(protect);
 router
   .route('/')
   .post(
-    // Access control: Only Admin can create
-    restrictTo('Admin'),
+    checkPermission('transaction:create'),
     transactionController.createTransaction
   )
   .get(
-    // Everyone can view (controller limits Viewers to their own records)
+    // No explicit route restriction needed; controller handles Viewer-scoping vs Admin/Analyst full read
+    // But we can add a checkPermission('transaction:readAll') if we had separate endpoints. 
+    // This assignment relies on the same endpoint serving both use cases.
     transactionController.getTransactions
   );
 
 router
   .route('/analytics')
   .get(
-    // RBAC: Only Admin and Analyst can view global analytics
-    restrictTo('Admin', 'Analyst'),
+    checkPermission('transaction:analytics'),
     transactionController.getDashboardAnalytics
   );
 
 router
   .route('/:id')
+  .get(
+    // Controller enforces Viewer access to self only
+    transactionController.getTransaction
+  )
   .patch(
-    restrictTo('Admin'),
+    checkPermission('transaction:update'),
     transactionController.updateTransaction
   )
   .delete(
-    restrictTo('Admin'),
+    checkPermission('transaction:delete'),
     transactionController.deleteTransaction
   );
 
 export { router as transactionRoutes };
+
