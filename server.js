@@ -14,12 +14,12 @@ import { globalErrorHandler } from './middlewares/error.middleware.js';
 import { AppError } from './utils/appError.js';
 import { connectRedis } from './utils/redisClient.js';
 
-// Load env variables
+
 dotenv.config();
 
 const app = express();
 
-// 1) GLOBAL MIDDLEWARES
+
 
 // Set security HTTP headers
 app.use(helmet());
@@ -46,14 +46,26 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Body parser, reading data from body into req.body
+
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
-// Data sanitization against NoSQL query injection
+
 app.use(mongoSanitize());
 
 // 2) ROUTES
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Welcome to the Finance API! Use /api/v1/auth/signup to register.',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'live' });
+});
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
@@ -64,7 +76,6 @@ app.all('*', (req, res, next) => {
 
 app.use(globalErrorHandler);
 
-// 3) SERVER & DATABASE SETUP
 
 const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/finance-dashboard';
 const PORT = process.env.PORT || 3000;
@@ -85,7 +96,7 @@ if (process.env.NODE_ENV !== 'test') {
 
   // Handle unhandled Promise rejections globally
   process.on('unhandledRejection', err => {
-    console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.log('UNHANDLED REJECTION! Shutting down...');
     console.log(err?.name, err?.message);
     server.close(() => {
       process.exit(1);
