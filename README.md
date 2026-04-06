@@ -25,32 +25,32 @@ A secure, role-based REST API for managing financial records, built with Node.js
 
 ## Overview
 
-| Capability | Details |
-|---|---|
-| Authentication | Secure Access (15m) & Refresh Token (7d) Rotation Pattern |
-| Authorization | Centralized RBAC Matrix (`Viewer`, `Analyst`, `Admin`) via `config/permissions.js` |
-| Financial Records | Full CRUD sorting, filtering, and **Cursor-based Pagination** |
-| Analytics | Complex Aggregation Pipelines supported by **Redis Caching** (5m TTL) |
-| Data Safety | Soft deletion mechanisms implemented across Users & Transactions |
-| Consistency | MongoDB session ACID transactions |
-| Validation | Granular dynamic input validation via Joi |
-| Security | Strict Origin CORS, Helmet headers, Rate Limiter |
-| Testing | Complete Jest + Supertest integration suite mapping all endpoints natively |
+| Capability        | Details                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| Authentication    | Secure Access (15m) & Refresh Token (7d) Rotation Pattern                          |
+| Authorization     | Centralized RBAC Matrix (`Viewer`, `Analyst`, `Admin`) via `config/permissions.js` |
+| Financial Records | Full CRUD sorting, filtering, and **Cursor-based Pagination**                      |
+| Analytics         | Complex Aggregation Pipelines supported by **Redis Caching** (5m TTL)              |
+| Data Safety       | Soft deletion mechanisms implemented across Users & Transactions                   |
+| Consistency       | MongoDB session ACID transactions                                                  |
+| Validation        | Granular dynamic input validation via Joi                                          |
+| Security          | Strict Origin CORS, Helmet headers, Rate Limiter                                   |
+| Testing           | Complete Jest + Supertest integration suite mapping all endpoints natively         |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js 18+ |
-| Framework | Express.js 4.x |
-| Database | MongoDB with Mongoose 8.x |
-| Caching | Redis (`ioredis`) |
-| Authentication | jsonwebtoken & `crypto` native secure hex generators |
-| Validation | Joi |
-| Testing | Jest, Supertest, `mongodb-memory-server` |
-| Security | cors, express-rate-limit, express-mongo-sanitize, helmet |
+| Layer          | Technology                                               |
+| -------------- | -------------------------------------------------------- |
+| Runtime        | Node.js 18+                                              |
+| Framework      | Express.js 4.x                                           |
+| Database       | MongoDB with Mongoose 8.x                                |
+| Caching        | Redis (`ioredis`)                                        |
+| Authentication | jsonwebtoken & `crypto` native secure hex generators     |
+| Validation     | Joi                                                      |
+| Testing        | Jest, Supertest, `mongodb-memory-server`                 |
+| Security       | cors, express-rate-limit, express-mongo-sanitize, helmet |
 
 ---
 
@@ -92,7 +92,7 @@ A secure, role-based REST API for managing financial records, built with Node.js
 │   ├── appError.js                 # Custom operational error
 │   ├── cache.js                    # Redis graceful fallback wrapper
 │   ├── catchAsync.js               # Async error wrapper
-│   ├── redisClient.js              # ioredis connection initialization 
+│   ├── redisClient.js              # ioredis connection initialization
 │   └── validation.js               # Joi object schemas
 │
 ├── .env
@@ -150,15 +150,29 @@ Create a `.env` file in the project root:
 ```env
 PORT=3000
 NODE_ENV=development
-
-MONGODB_URI=mongodb://localhost:27017/finance-dashboard
-REDIS_URL=redis://127.0.0.1:6379
-ALLOWED_ORIGINS=http://localhost:5173
-
-JWT_SECRET=your_super_secret_jwt_key_minimum_32_characters
+MONGODB_URI=your_mongodb_cluster_connection_string
+REDIS_URL=your_redis_url_here
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=90d
+JWT_COOKIE_EXPIRES_IN=90
 ```
 
 > **Note:** The application uses **Graceful Degradation** for Redis. If a Redis URL isn't configured or the Redis server goes down unexpectedly, the system will seamlessly fall back to executing standard isolated MongoDB aggregations instead of crashing.
+
+---
+
+## API Documentation & Testing
+
+### Postman Collection (Drive Link Shared)
+
+I have exported the complete API collection in **JSON v2.1 format** and shared the Google Drive link.
+
+**Steps to Test:**
+
+1. Download the `.json` file from the provided Google Drive link.
+2. In Postman, click the **Import** button in the top left corner.
+3. Select the downloaded `.json` file to load all endpoints.
+4. You can now test all authentication, user management, and transaction endpoints directly in Postman.
 
 ---
 
@@ -167,6 +181,7 @@ JWT_SECRET=your_super_secret_jwt_key_minimum_32_characters
 **Base URL:** `http://localhost:3000/api/v1`
 
 All protected routes require one of:
+
 - Header: `Authorization: Bearer <token>`
 - Cookie: `jwt=<token>` (set automatically on login/signup)
 
@@ -182,12 +197,12 @@ Register a new user account.
 
 **Request Body**
 
-| Field | Type | Required | Rules |
-|---|---|---|---|
-| `name` | String | Yes | Non-empty |
-| `email` | String | Yes | Valid email |
-| `password` | String | Yes | Min 6 characters |
-| `role` | String | No | `Admin`, `Analyst`, or `Viewer` — defaults to `Viewer` |
+| Field      | Type   | Required | Rules                                                  |
+| ---------- | ------ | -------- | ------------------------------------------------------ |
+| `name`     | String | Yes      | Non-empty                                              |
+| `email`    | String | Yes      | Valid email                                            |
+| `password` | String | Yes      | Min 6 characters                                       |
+| `role`     | String | No       | `Admin`, `Analyst`, or `Viewer` — defaults to `Viewer` |
 
 ```json
 {
@@ -219,10 +234,10 @@ Register a new user account.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Missing/invalid fields — e.g. `"email" must be a valid email` |
-| `400` | Email already registered — `Email is already registered. Please login instead.` |
+| Status | Scenario                                                                        |
+| ------ | ------------------------------------------------------------------------------- |
+| `400`  | Missing/invalid fields — e.g. `"email" must be a valid email`                   |
+| `400`  | Email already registered — `Email is already registered. Please login instead.` |
 
 ---
 
@@ -234,10 +249,10 @@ Authenticate and receive a JWT token.
 
 **Request Body**
 
-| Field | Type | Required |
-|---|---|---|
-| `email` | String | Yes |
-| `password` | String | Yes |
+| Field      | Type   | Required |
+| ---------- | ------ | -------- |
+| `email`    | String | Yes      |
+| `password` | String | Yes      |
 
 ```json
 {
@@ -267,10 +282,10 @@ Authenticate and receive a JWT token.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Email or password missing — `Please provide email and password!` |
-| `401` | Wrong credentials — `Incorrect email or password` |
+| Status | Scenario                                                         |
+| ------ | ---------------------------------------------------------------- |
+| `400`  | Email or password missing — `Please provide email and password!` |
+| `401`  | Wrong credentials — `Incorrect email or password`                |
 
 ---
 
@@ -299,9 +314,9 @@ Rotates your session token by returning a newly minted `accessToken` and replaci
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `401` | Token missing or expired — `Invalid or expired refresh token. Please login again.` |
+| Status | Scenario                                                                           |
+| ------ | ---------------------------------------------------------------------------------- |
+| `401`  | Token missing or expired — `Invalid or expired refresh token. Please login again.` |
 
 ---
 
@@ -386,10 +401,10 @@ Retrieve a single user by MongoDB ObjectId.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Invalid ObjectId format |
-| `404` | User not found |
+| Status | Scenario                |
+| ------ | ----------------------- |
+| `400`  | Invalid ObjectId format |
+| `404`  | User not found          |
 
 ---
 
@@ -399,12 +414,12 @@ Admin-provisioned user creation (bypasses the self-signup flow).
 
 **Request Body**
 
-| Field | Type | Required | Rules |
-|---|---|---|---|
-| `name` | String | Yes | Non-empty |
-| `email` | String | Yes | Valid email |
-| `password` | String | Yes | Min 6 characters |
-| `role` | String | No | `Admin`, `Analyst`, or `Viewer` — defaults to `Viewer` |
+| Field      | Type   | Required | Rules                                                  |
+| ---------- | ------ | -------- | ------------------------------------------------------ |
+| `name`     | String | Yes      | Non-empty                                              |
+| `email`    | String | Yes      | Valid email                                            |
+| `password` | String | Yes      | Min 6 characters                                       |
+| `role`     | String | No       | `Admin`, `Analyst`, or `Viewer` — defaults to `Viewer` |
 
 ```json
 {
@@ -435,11 +450,11 @@ Admin-provisioned user creation (bypasses the self-signup flow).
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Validation failure |
-| `400` | Duplicate email |
-| `403` | Caller is not an Admin |
+| Status | Scenario               |
+| ------ | ---------------------- |
+| `400`  | Validation failure     |
+| `400`  | Duplicate email        |
+| `403`  | Caller is not an Admin |
 
 ---
 
@@ -447,7 +462,7 @@ Admin-provisioned user creation (bypasses the self-signup flow).
 
 Update a user's name, email, or role. Password updates are not allowed on this route.
 
-**Request Body** *(all fields optional)*
+**Request Body** _(all fields optional)_
 
 ```json
 {
@@ -476,10 +491,10 @@ Update a user's name, email, or role. Password updates are not allowed on this r
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Password field sent — `This route is not for password updates.` |
-| `404` | User not found |
+| Status | Scenario                                                        |
+| ------ | --------------------------------------------------------------- |
+| `400`  | Password field sent — `This route is not for password updates.` |
+| `404`  | User not found                                                  |
 
 ---
 
@@ -487,13 +502,13 @@ Update a user's name, email, or role. Password updates are not allowed on this r
 
 Soft-deletes a user by setting `active: false`. The record is retained for audit purposes and excluded from future queries.
 
-**Response — `204 No Content`** *(empty body)*
+**Response — `204 No Content`** _(empty body)_
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `404` | User not found |
+| Status | Scenario       |
+| ------ | -------------- |
+| `404`  | User not found |
 
 ---
 
@@ -509,15 +524,15 @@ List transactions. Admins and Analysts see all records. Viewers see only their o
 
 **Query Parameters**
 
-| Parameter | Example | Description |
-|---|---|---|
-| `type` | `?type=income` | Filter by `income` or `expense` |
-| `category` | `?category=Salary` | Filter by category name |
-| `date[gte]` | `?date[gte]=2026-01-01` | Transactions on or after date |
-| `date[lte]` | `?date[lte]=2026-04-30` | Transactions on or before date |
-| `sort` | `?sort=-amount` | Sort field (prefix `-` for descending) |
-| `limit` | `?limit=10` | Results to return (defaults to all) |
-| `cursor` | `?cursor=eyJhb...` | A base64-encoded Object ID cursor provided via previous queries to fast-paginate forward. |
+| Parameter   | Example                 | Description                                                                               |
+| ----------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| `type`      | `?type=income`          | Filter by `income` or `expense`                                                           |
+| `category`  | `?category=Salary`      | Filter by category name                                                                   |
+| `date[gte]` | `?date[gte]=2026-01-01` | Transactions on or after date                                                             |
+| `date[lte]` | `?date[lte]=2026-04-30` | Transactions on or before date                                                            |
+| `sort`      | `?sort=-amount`         | Sort field (prefix `-` for descending)                                                    |
+| `limit`     | `?limit=10`             | Results to return (defaults to all)                                                       |
+| `cursor`    | `?cursor=eyJhb...`      | A base64-encoded Object ID cursor provided via previous queries to fast-paginate forward. |
 
 **Example**
 
@@ -571,13 +586,13 @@ Create a new financial record.
 
 **Request Body**
 
-| Field | Type | Required | Rules |
-|---|---|---|---|
-| `amount` | Number | Yes | Positive number |
-| `type` | String | Yes | `income` or `expense` |
-| `category` | String | Yes | Non-empty string |
-| `date` | String | No | ISO 8601 format — defaults to current date |
-| `notes` | String | No | Max 500 characters |
+| Field      | Type   | Required | Rules                                      |
+| ---------- | ------ | -------- | ------------------------------------------ |
+| `amount`   | Number | Yes      | Positive number                            |
+| `type`     | String | Yes      | `income` or `expense`                      |
+| `category` | String | Yes      | Non-empty string                           |
+| `date`     | String | No       | ISO 8601 format — defaults to current date |
+| `notes`    | String | No       | Max 500 characters                         |
 
 ```json
 {
@@ -612,11 +627,11 @@ Create a new financial record.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | `"amount" must be a positive number` |
-| `400` | `"type" must be one of [income, expense]` |
-| `403` | `Only Admins can create records` |
+| Status | Scenario                                  |
+| ------ | ----------------------------------------- |
+| `400`  | `"amount" must be a positive number`      |
+| `400`  | `"type" must be one of [income, expense]` |
+| `403`  | `Only Admins can create records`          |
 
 ---
 
@@ -647,11 +662,11 @@ Retrieve a single transaction by ID. Viewers can only access records they own.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `400` | Invalid ObjectId format |
-| `403` | Viewer accessing another user's record |
-| `404` | Transaction not found |
+| Status | Scenario                               |
+| ------ | -------------------------------------- |
+| `400`  | Invalid ObjectId format                |
+| `403`  | Viewer accessing another user's record |
+| `404`  | Transaction not found                  |
 
 ---
 
@@ -661,7 +676,7 @@ Update fields of an existing transaction.
 
 **Access:** Admin only
 
-**Request Body** *(all fields optional)*
+**Request Body** _(all fields optional)_
 
 ```json
 {
@@ -693,10 +708,10 @@ Update fields of an existing transaction.
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `403` | `Only Admins can update records` |
-| `404` | Transaction not found |
+| Status | Scenario                         |
+| ------ | -------------------------------- |
+| `403`  | `Only Admins can update records` |
+| `404`  | Transaction not found            |
 
 ---
 
@@ -706,14 +721,14 @@ Soft-deletes a transaction by setting `isDeleted: true`. The record is hidden fr
 
 **Access:** Admin only
 
-**Response — `204 No Content`** *(empty body)*
+**Response — `204 No Content`** _(empty body)_
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `403` | `You do not have permission to delete this transaction` |
-| `404` | Transaction not found |
+| Status | Scenario                                                |
+| ------ | ------------------------------------------------------- |
+| `403`  | `You do not have permission to delete this transaction` |
+| `404`  | Transaction not found                                   |
 
 ---
 
@@ -798,20 +813,100 @@ Returns aggregated financial data computed entirely via MongoDB aggregation pipe
 
 **Response Fields**
 
-| Field | Description |
-|---|---|
-| `overview.totalIncome` | Sum of all `income` transactions |
-| `overview.totalExpense` | Sum of all `expense` transactions |
-| `overview.netBalance` | `totalIncome - totalExpense` |
-| `categoryBreakdown` | Per-category totals sorted by amount descending |
-| `recentActivity` | Last 5 non-deleted transactions with creator name |
-| `monthlyTrends` | Income vs expense grouped by year-month, sorted chronologically |
+| Field                   | Description                                                     |
+| ----------------------- | --------------------------------------------------------------- |
+| `overview.totalIncome`  | Sum of all `income` transactions                                |
+| `overview.totalExpense` | Sum of all `expense` transactions                               |
+| `overview.netBalance`   | `totalIncome - totalExpense`                                    |
+| `categoryBreakdown`     | Per-category totals sorted by amount descending                 |
+| `recentActivity`        | Last 5 non-deleted transactions with creator name               |
+| `monthlyTrends`         | Income vs expense grouped by year-month, sorted chronologically |
 
 **Error Responses**
 
-| Status | Scenario |
-|---|---|
-| `403` | Viewer role — `You do not have permission to perform this action` |
+| Status | Scenario                                                          |
+| ------ | ----------------------------------------------------------------- |
+| `403`  | Viewer role — `You do not have permission to perform this action` |
+
+---
+
+## Postman Testing Guide
+
+Here are the endpoints and sample JSON payloads you can use directly in Postman to test the API.
+
+### 1. Variables to set in Postman Let:
+
+- `{{baseUrl}}` = `http://localhost:3000/api/v1`
+- `{{token}}` = the `accessToken` you receive from login/signup.
+
+### 2. Authentication
+
+**Signup (POST `{{baseUrl}}/auth/signup`)**
+
+```json
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "password123",
+  "role": "Admin"
+}
+```
+
+**Login (POST `{{baseUrl}}/auth/login`)**
+
+```json
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+```
+
+_Note: This will set a `jwt` cookie automatically if your Postman intercepts it, or extract `accessToken` and add it as a Bearer Token for protected endpoints._
+
+### 3. Users
+
+**Create User (POST `{{baseUrl}}/users`)** _(Requires Admin)_
+
+```json
+{
+  "name": "Jane Analyst",
+  "email": "jane@example.com",
+  "password": "password123",
+  "role": "Analyst"
+}
+```
+
+**Update User (PATCH `{{baseUrl}}/users/:id`)** _(Requires Admin)_
+
+```json
+{
+  "name": "Jane Doe Updated",
+  "role": "Viewer"
+}
+```
+
+### 4. Transactions
+
+**Create Transaction (POST `{{baseUrl}}/transactions`)** _(Requires Admin)_
+
+```json
+{
+  "amount": 5000,
+  "type": "income",
+  "category": "Salary",
+  "date": "2026-04-06",
+  "notes": "Postman test transaction"
+}
+```
+
+**Update Transaction (PATCH `{{baseUrl}}/transactions/:id`)** _(Requires Admin)_
+
+```json
+{
+  "amount": 5500,
+  "notes": "Updated note from Postman"
+}
+```
 
 ---
 
@@ -819,22 +914,22 @@ Returns aggregated financial data computed entirely via MongoDB aggregation pipe
 
 ### Permissions Matrix
 
-| Endpoint | Admin | Analyst | Viewer |
-|---|:---:|:---:|:---:|
-| `POST /auth/signup` | Yes | Yes | Yes |
-| `POST /auth/login` | Yes | Yes | Yes |
-| `GET /auth/logout` | Yes | Yes | Yes |
-| `GET /users` | Yes | No | No |
-| `POST /users` | Yes | No | No |
-| `GET /users/:id` | Yes | No | No |
-| `PATCH /users/:id` | Yes | No | No |
-| `DELETE /users/:id` | Yes | No | No |
-| `GET /transactions` | All records | All records | Own only |
-| `POST /transactions` | Yes | No | No |
-| `GET /transactions/:id` | Yes | Yes | Own only |
-| `PATCH /transactions/:id` | Yes | No | No |
-| `DELETE /transactions/:id` | Yes | No | No |
-| `GET /transactions/analytics` | Yes | Yes | No |
+| Endpoint                      |    Admin    |   Analyst   |  Viewer  |
+| ----------------------------- | :---------: | :---------: | :------: |
+| `POST /auth/signup`           |     Yes     |     Yes     |   Yes    |
+| `POST /auth/login`            |     Yes     |     Yes     |   Yes    |
+| `GET /auth/logout`            |     Yes     |     Yes     |   Yes    |
+| `GET /users`                  |     Yes     |     No      |    No    |
+| `POST /users`                 |     Yes     |     No      |    No    |
+| `GET /users/:id`              |     Yes     |     No      |    No    |
+| `PATCH /users/:id`            |     Yes     |     No      |    No    |
+| `DELETE /users/:id`           |     Yes     |     No      |    No    |
+| `GET /transactions`           | All records | All records | Own only |
+| `POST /transactions`          |     Yes     |     No      |    No    |
+| `GET /transactions/:id`       |     Yes     |     Yes     | Own only |
+| `PATCH /transactions/:id`     |     Yes     |     No      |    No    |
+| `DELETE /transactions/:id`    |     Yes     |     No      |    No    |
+| `GET /transactions/analytics` |     Yes     |     Yes     |    No    |
 
 ### How Enforcement Works
 
@@ -858,28 +953,28 @@ All error responses follow a consistent structure:
 
 ### HTTP Status Codes
 
-| Code | Meaning |
-|---|---|
-| `200` | OK |
-| `201` | Created |
-| `204` | No Content (successful delete) |
+| Code  | Meaning                                             |
+| ----- | --------------------------------------------------- |
+| `200` | OK                                                  |
+| `201` | Created                                             |
+| `204` | No Content (successful delete)                      |
 | `400` | Bad Request — validation, duplicate key, invalid ID |
-| `401` | Unauthorized — missing, invalid, or expired token |
-| `403` | Forbidden — insufficient role |
-| `404` | Not Found |
-| `429` | Too Many Requests — rate limit exceeded |
-| `500` | Internal Server Error |
+| `401` | Unauthorized — missing, invalid, or expired token   |
+| `403` | Forbidden — insufficient role                       |
+| `404` | Not Found                                           |
+| `429` | Too Many Requests — rate limit exceeded             |
+| `500` | Internal Server Error                               |
 
 ### Handled Error Types
 
-| Error Type | HTTP Code | Triggered When |
-|---|---|---|
-| `CastError` | `400` | Invalid MongoDB ObjectId passed as URL param |
-| `E11000 Duplicate Key` | `400` | Duplicate email on signup |
-| `ValidationError` | `400` | Mongoose schema validation fails |
-| `JsonWebTokenError` | `401` | Token is malformed or tampered |
-| `TokenExpiredError` | `401` | JWT has passed its expiry date |
-| Operational `AppError` | Varies | Application-level errors thrown via `next(new AppError(...))` |
+| Error Type             | HTTP Code | Triggered When                                                |
+| ---------------------- | --------- | ------------------------------------------------------------- |
+| `CastError`            | `400`     | Invalid MongoDB ObjectId passed as URL param                  |
+| `E11000 Duplicate Key` | `400`     | Duplicate email on signup                                     |
+| `ValidationError`      | `400`     | Mongoose schema validation fails                              |
+| `JsonWebTokenError`    | `401`     | Token is malformed or tampered                                |
+| `TokenExpiredError`    | `401`     | JWT has passed its expiry date                                |
+| Operational `AppError` | Varies    | Application-level errors thrown via `next(new AppError(...))` |
 
 > In `development` mode, full stack traces are included in responses. In `production` mode, only the message is returned and unknown errors respond with `Something went very wrong!` to prevent information leakage.
 
@@ -887,17 +982,17 @@ All error responses follow a consistent structure:
 
 ## Security
 
-| Mechanism | Implementation | Protection Against |
-|---|---|---|
-| JWT Auth | `jsonwebtoken` | Unauthenticated access |
-| HTTP-only Cookies | `httpOnly: true` flag | XSS token theft |
-| Secure Cookies | Enabled in production | HTTP interception |
-| Password Hashing | `bcrypt` with 12 rounds | Plaintext exposure on DB breach |
-| Rate Limiting | 100 requests/hour per IP | Brute force and DoS attacks |
-| Security Headers | `helmet` | Clickjacking, MIME sniffing, etc. |
-| NoSQL Injection | `express-mongo-sanitize` | Operator injection via `$` and `.` |
-| Body Size Cap | `express.json({ limit: '10kb' })` | Oversized payload attacks |
-| Error Sanitization | Custom error handler | Stack trace exposure in production |
+| Mechanism          | Implementation                    | Protection Against                 |
+| ------------------ | --------------------------------- | ---------------------------------- |
+| JWT Auth           | `jsonwebtoken`                    | Unauthenticated access             |
+| HTTP-only Cookies  | `httpOnly: true` flag             | XSS token theft                    |
+| Secure Cookies     | Enabled in production             | HTTP interception                  |
+| Password Hashing   | `bcrypt` with 12 rounds           | Plaintext exposure on DB breach    |
+| Rate Limiting      | 100 requests/hour per IP          | Brute force and DoS attacks        |
+| Security Headers   | `helmet`                          | Clickjacking, MIME sniffing, etc.  |
+| NoSQL Injection    | `express-mongo-sanitize`          | Operator injection via `$` and `.` |
+| Body Size Cap      | `express.json({ limit: '10kb' })` | Oversized payload attacks          |
+| Error Sanitization | Custom error handler              | Stack trace exposure in production |
 
 ---
 
@@ -923,4 +1018,4 @@ The `notes` field is optional on all transactions and accepts up to 500 characte
 
 ---
 
-*Finance Data Processing and Access Control Backend — Zorvyn FinTech Internship Assignment*
+_Finance Data Processing and Access Control Backend — Zorvyn FinTech Internship Assignment_
